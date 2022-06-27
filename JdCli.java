@@ -102,7 +102,6 @@ public class JdCli {
 
 			ClassFileToJavaSourceDecompiler decompiler = new ClassFileToJavaSourceDecompiler();
 			try{
-				System.out.println("main:"+args[i]);
 				decompiler.decompile(loader, printer, args[i]);
 			} catch (Exception ex) {
 
