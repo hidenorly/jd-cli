@@ -11,9 +11,10 @@ export $JD_CORE_PATH=~/work/jd-core/build/libs/jd-core-1.1.4.jar
 # how to build
 
 ```
-% javac -d out -classpath $JD_CORE_PATH JdCli.java
-% cd out; jar cfe ../JdCli.jar JdCli com/github/hidenorly/jdcli/*.class; cd ..
+% ./build.sh
 ```
+
+Note that this is tentative.
 
 
 # how to execute

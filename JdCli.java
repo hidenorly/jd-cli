@@ -12,9 +12,13 @@
    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
    See the License for the specific language governing permissions and
    limitations under the License.
+
 */
 
 package com.github.hidenorly.jdcli;
+
+import com.github.hidenorly.jdcli.OptParse;
+import com.github.hidenorly.jdcli.OptParse.OptParseItem;
 
 import org.jd.core.v1.api.*;
 import org.jd.core.v1.api.Decompiler;
@@ -28,10 +32,19 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Vector;
 
 public class JdCli {
 	public static void main(String[] args) {
-		for(int i=0,c=args.length; i<c; i++){
+
+		Vector<OptParseItem> options = new Vector<OptParseItem>();
+		options.add( new OptParseItem("-o", "--output", true, ".", "Specify output path") );
+
+		OptParse opt = new OptParse( args, options, "JdCli [options] target1.class [target2.class ...]");
+
+		for(int i=0, c=opt.args.size(); i<c; i++){
+			String theArg = opt.args.get(i);
+
 			Loader loader = new Loader() {
 			    @Override
 			    public byte[] load(String internalName) throws LoaderException {
@@ -102,7 +115,7 @@ public class JdCli {
 
 			ClassFileToJavaSourceDecompiler decompiler = new ClassFileToJavaSourceDecompiler();
 			try{
-				decompiler.decompile(loader, printer, args[i]);
+				decompiler.decompile(loader, printer, theArg);
 			} catch (Exception ex) {
 
 			}
