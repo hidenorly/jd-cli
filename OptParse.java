@@ -20,7 +20,7 @@ package com.github.hidenorly.jdcli;
 import java.util.Map;
 import java.util.HashMap;
 import java.util.Vector;
-import java.util.ArrayList; 
+import java.util.ArrayList;
 import java.util.List;
 
 public class OptParse {
@@ -52,15 +52,15 @@ public class OptParse {
         if( anOption.bArgRequired && (i+1) < c ){
           values.put( anOption.option, argv[ i+1 ] );
         } else {
-          values.put( anOption.option, anOption.option );
+          values.put( anOption.option, "true" );
         }
         break;
-      } else if( argv[i].equals( anOption.fullOption ) ){
+      } else if( argv[i].startsWith( anOption.fullOption ) ){
         int nPos = argv[i].indexOf("=");
         if( nPos != -1 ){
           values.put( anOption.option, argv[i].substring( nPos+1, argv[i].length() ) );
         } else {
-          values.put( anOption.option, anOption.option );
+          values.put( anOption.option, "true" );
         }
         break;
       }
@@ -71,12 +71,12 @@ public class OptParse {
   	for(int i=0, c=argv.length; i<c; i++ ){
   		if( argv[i].startsWith("-") ){
   			for( OptParseItem anOption : options ){
-  				if( anOption.option.equals( argv[i] ) || anOption.fullOption.equals( argv[i] ) ){
-            if( anOption.bArgRequired ){
-  						i++;
-  					}
-  					break;
-  				}
+  				if( argv[i].equals( anOption.option ) && anOption.bArgRequired ){
+						i++;
+						break;
+					} else if( argv[i].startsWith( anOption.fullOption ) ){
+						break;
+					}
   			}
   		} else {
   			args.add( argv[i] );
@@ -87,13 +87,15 @@ public class OptParse {
   protected void parseOpts(Vector<OptParseItem> options, String[] argv){
   	parseArgs( options, argv );
 
+    // ensure values's key:theDefaultValue
+    for( OptParseItem anOption : options ){
+      if( anOption.option != "-h" ){
+        values.put( anOption.option, anOption.value );
+      }
+    }
+
     for( OptParseItem anOption : options ){
       parseOption( anOption, argv );
-    }
-    for( OptParseItem anOption : options ){
-      if( anOption.option != "-h" && !values.containsKey( anOption.option ) ){
-        values.put( anOption.option, anOption.bArgRequired ? anOption.value : anOption.option );
-      }
     }
   };
 
