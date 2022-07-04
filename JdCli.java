@@ -33,12 +33,17 @@ import java.io.FileNotFoundException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.Vector;
+import java.util.List;
+import java.util.ArrayList;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+
 
 public class JdCli {
   static protected void doDisassemble(String path){
     Loader loader = new Loader() {
-      @Override
-      public byte[] load(String internalName) throws LoaderException {
+      protected InputStream getStream(String internalName){
         InputStream is = this.getClass().getResourceAsStream( "/" + internalName + ".class" );
         if( is == null ){
           try{
@@ -46,6 +51,12 @@ public class JdCli {
           } catch( FileNotFoundException e ){
           }
         }
+        return is;
+      }
+
+      @Override
+      public byte[] load(String internalName) throws LoaderException {
+        InputStream is = getStream( internalName );
 
         if (is == null) {
           System.out.println( "Loader::load:"+internalName+":failed" );
@@ -113,6 +124,19 @@ public class JdCli {
     System.out.println( source );
   }
 
+  protected static List<Path> getClassPaths(String path){
+    List<Path> result = new ArrayList<Path>();
+
+    Path thePath = Paths.get( path );
+    if( Files.isDirectory( thePath ) || path.endsWith(".apk") || path.endsWith(".zip") || path.endsWith(".jar") ){
+      result = FileLister.getFileList( path, ".*\\.class" );
+    } else {
+      result.add( thePath );
+    }
+
+    return result;
+  }
+
   public static void main(String[] args) {
     Vector<OptParseItem> options = new Vector<OptParseItem>();
     options.add( new OptParseItem("-o", "--output", true, ".", "Specify output path") );
@@ -120,8 +144,16 @@ public class JdCli {
     OptParse opt = new OptParse( args, options, "JdCli [options] target1.class [target2.class ...]");
 
     for(int i=0, c=opt.args.size(); i<c; i++){
-      String theArg = opt.args.get(i);
-      doDisassemble( theArg );
+      String anArg = opt.args.get(i);
+      List<Path> paths = getClassPaths( anArg );
+      for(int j=0, d=paths.size(); j<d; j++ ){
+        Path thePath = paths.get(j);
+        if( thePath.toString().equals( anArg ) ){
+          doDisassemble( anArg );
+        } else {
+          doDisassemble( anArg+":"+thePath.toString() );
+        }
+      }
     }
   }
 }

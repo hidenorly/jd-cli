@@ -5,7 +5,7 @@ This is command line Java class disassembler.
 # configure
 
 ```
-export $JD_CORE_PATH=~/work/jd-core/build/libs/jd-core-1.1.4.jar
+export JD_CORE_PATH=~/work/jd-core/build/libs/jd-core-1.1.4.jar
 ```
 
 # how to build
