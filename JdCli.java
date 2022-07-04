@@ -38,6 +38,8 @@ import java.util.ArrayList;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.nio.file.FileSystem;
+import java.nio.file.FileSystems;
 
 
 public class JdCli {
@@ -45,10 +47,29 @@ public class JdCli {
     Loader loader = new Loader() {
       protected InputStream getStream(String internalName){
         InputStream is = this.getClass().getResourceAsStream( "/" + internalName + ".class" );
-        if( is == null ){
+
+        Path targetPath = null;
+        try{
+          int nPos = internalName.indexOf(":");
+          if( nPos !=-1 ){
+            // this is .jar case
+            String zipPath = internalName.substring(0, nPos);
+            String classPath = internalName.substring(nPos+1);
+            Path zipFile = Paths.get( zipPath );
+            ClassLoader loader = null;
+            FileSystem fs = FileSystems.newFileSystem( zipFile, loader );
+            targetPath = fs.getPath( classPath );
+          } else {
+            targetPath = Paths.get( path );
+          }
+        } catch (Exception ex) {
+
+        }
+
+        if( is == null && targetPath != null ){
           try{
-            is = new FileInputStream( internalName );
-          } catch( FileNotFoundException e ){
+            is = Files.newInputStream( targetPath );
+          } catch( Exception ex ){
           }
         }
         return is;
@@ -148,8 +169,8 @@ public class JdCli {
       List<Path> paths = getClassPaths( anArg );
       for(int j=0, d=paths.size(); j<d; j++ ){
         Path thePath = paths.get(j);
-        if( thePath.toString().equals( anArg ) ){
-          doDisassemble( anArg );
+        if( thePath.toString().startsWith( anArg ) ){
+          doDisassemble( thePath.toString() );
         } else {
           doDisassemble( anArg+":"+thePath.toString() );
         }
