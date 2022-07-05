@@ -27,11 +27,14 @@ import org.jd.core.v1.api.loader.Loader;
 import org.jd.core.v1.api.loader.LoaderException;
 import org.jd.core.v1.api.printer.Printer;
 
+import java.io.File;
 import java.io.InputStream;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.PrintStream;
+import java.io.FileOutputStream;
 import java.util.Vector;
 import java.util.List;
 import java.util.ArrayList;
@@ -41,8 +44,45 @@ import java.nio.file.Paths;
 import java.nio.file.FileSystem;
 import java.nio.file.FileSystems;
 
-
 public class JdCli {
+  static protected String mOutputPath;
+  static protected boolean mIsOutputFile;
+
+  protected static void ensureDirectory(String path){
+    try{
+      String basePath = new File(path).getParent();
+      Files.createDirectories( Paths.get( basePath ) );
+    } catch(Exception ex) {
+    }
+  }
+
+  protected static String getOutputPath(String source){
+    String filename = "";
+    int nPos1 = source.indexOf("package ");
+    int nPos2 = source.indexOf(";", nPos1);
+    if( nPos1!=-1 && nPos2!=-1 ){
+      filename = source.substring(nPos1+8, nPos2);
+      filename = filename.replace(".", "/");
+
+      int nPos3 = filename.indexOf(":");
+      if( nPos3 != -1 ){
+        filename = filename.substring( nPos3+1 );
+      }
+
+      nPos1 = source.indexOf( "class ",  nPos2 + 1);
+      if( nPos1 !=-1 ){
+        nPos2 = source.indexOf( " ", nPos1+7);
+        if( nPos2 !=-1 ){
+          filename = filename + "/" + source.substring( nPos1+6, nPos2 );
+        }
+      }
+
+      filename = filename+".java";
+    }
+
+    return mOutputPath + "/" + filename;
+  }
+
   static protected void doDisassemble(String path){
     Loader loader = new Loader() {
       protected InputStream getStream(String internalName){
@@ -101,7 +141,7 @@ public class JdCli {
 
       @Override
       public boolean canLoad(String internalName) {
-        return true;//this.getClass().getResource("/" + internalName + ".class") != null;
+        return true;
       }
     };
 
@@ -142,7 +182,18 @@ public class JdCli {
 
     }
     String source = printer.toString();
-    System.out.println( source );
+    if( !mIsOutputFile ){
+      System.out.println( source );
+    } else {
+      String outputPath = getOutputPath( source );
+      ensureDirectory( outputPath );
+      try {
+        PrintStream ps = new PrintStream( new FileOutputStream( outputPath ) );
+        ps.print( source );
+        ps.close();
+      } catch( Exception ex ){
+      }
+    }
   }
 
   protected static List<Path> getClassPaths(String path){
@@ -160,9 +211,11 @@ public class JdCli {
 
   public static void main(String[] args) {
     Vector<OptParseItem> options = new Vector<OptParseItem>();
-    options.add( new OptParseItem("-o", "--output", true, ".", "Specify output path") );
+    options.add( new OptParseItem("-o", "--output", true, "", "Specify output path if you want to output as file") );
 
     OptParse opt = new OptParse( args, options, "JdCli [options] target1.class [target2.class ...]");
+    mOutputPath = opt.values.get("-o");
+    mIsOutputFile = !opt.values.get("-o").isEmpty();
 
     for(int i=0, c=opt.args.size(); i<c; i++){
       String anArg = opt.args.get(i);
