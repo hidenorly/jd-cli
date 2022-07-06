@@ -56,31 +56,53 @@ public class JdCli {
     }
   }
 
+  protected static String getNumberedFilename(String filename, int num){
+    int nPos1 = filename.lastIndexOf( ".java" );
+    int nPos2 = filename.lastIndexOf( "_", nPos1 );
+    if( nPos2 !=-1 ){
+      filename = filename.substring( 0, nPos2 + 1 ) + String.valueOf( num ) + ".java";
+    } else {
+      if( num > 1 ){
+        filename = filename.substring( 0, nPos1 ) + "_" + String.valueOf( num ) + ".java";
+      }
+    }
+    return filename;
+  }
+
+
   protected static String getOutputPath(String source){
     String filename = "";
-    int nPos1 = source.indexOf("package ");
-    int nPos2 = source.indexOf(";", nPos1);
+    int nPos1 = source.indexOf( "package " );
+    int nPos2 = source.indexOf( ";", nPos1 );
     if( nPos1!=-1 && nPos2!=-1 ){
-      filename = source.substring(nPos1+8, nPos2);
-      filename = filename.replace(".", "/");
+      filename = source.substring( nPos1 + 8, nPos2 );
+      filename = filename.replace( ".", "/" );
 
-      int nPos3 = filename.indexOf(":");
+      int nPos3 = filename.indexOf( ":" );
       if( nPos3 != -1 ){
-        filename = filename.substring( nPos3+1 );
+        filename = filename.substring( nPos3 + 1 );
       }
 
       nPos1 = source.indexOf( "class ",  nPos2 + 1);
       if( nPos1 !=-1 ){
-        nPos2 = source.indexOf( " ", nPos1+7);
+        nPos2 = source.indexOf( " ", nPos1 + 7 );
         if( nPos2 !=-1 ){
-          filename = filename + "/" + source.substring( nPos1+6, nPos2 );
+          filename = filename + "/" + source.substring( nPos1 + 6, nPos2 );
         }
       }
 
       filename = filename+".java";
     }
 
-    return mOutputPath + "/" + filename;
+    filename = mOutputPath + "/" + filename;
+
+    int num = 1;
+    while( Files.exists( Paths.get( filename ) ) ){
+      num++;
+      filename = getNumberedFilename( filename, num );
+    }
+
+    return filename;
   }
 
   static protected void doDisassemble(String path){
