@@ -33,7 +33,7 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintStream;
+import java.io.PrintWriter;
 import java.io.FileOutputStream;
 import java.util.Vector;
 import java.util.List;
@@ -46,6 +46,7 @@ import java.nio.file.FileSystems;
 
 public class JdCli {
   static protected String mOutputPath;
+  static List<String> mOutputPaths = new ArrayList<String>();
   static protected boolean mIsOutputFile;
 
   protected static void ensureDirectory(String path){
@@ -69,9 +70,10 @@ public class JdCli {
     return filename;
   }
 
+  protected static String getFullClassPathFromSourceCode(String source){
+    String filename = "null";
 
-  protected static String getOutputPath(String source){
-    String filename = "";
+    // extract class name
     int nPos1 = source.indexOf( "package " );
     int nPos2 = source.indexOf( ";", nPos1 );
     if( nPos1!=-1 && nPos2!=-1 ){
@@ -90,17 +92,29 @@ public class JdCli {
           filename = filename + "/" + source.substring( nPos1 + 6, nPos2 );
         }
       }
-
-      filename = filename+".java";
     }
+    return filename;
+  }
 
-    filename = mOutputPath + "/" + filename;
-
+  protected static String getNonDuplicatedFilename(String filename){
+    // check duplicated or not
     int num = 1;
-    while( Files.exists( Paths.get( filename ) ) ){
+    while( mOutputPaths.contains( filename ) ){
       num++;
       filename = getNumberedFilename( filename, num );
     }
+
+    mOutputPaths.add( filename );
+
+    return filename;
+  }
+
+  protected static String getOutputPath(String source){
+    String filename = getFullClassPathFromSourceCode( source );
+    filename = filename+".java";
+    filename = getNonDuplicatedFilename( filename );
+
+    filename = mOutputPath + "/" + filename;
 
     return filename;
   }
@@ -204,17 +218,19 @@ public class JdCli {
 
     }
     String source = printer.toString();
-    if( !mIsOutputFile ){
-      System.out.println( source );
-    } else {
+
+    if( mIsOutputFile ){
       String outputPath = getOutputPath( source );
       ensureDirectory( outputPath );
       try {
-        PrintStream ps = new PrintStream( new FileOutputStream( outputPath ) );
+        PrintWriter ps = new PrintWriter( new FileOutputStream( outputPath ) );
         ps.print( source );
+        ps.flush();
         ps.close();
       } catch( Exception ex ){
       }
+    } else {
+      System.out.println( source );
     }
   }
 
@@ -239,15 +255,16 @@ public class JdCli {
     mOutputPath = opt.values.get("-o");
     mIsOutputFile = !opt.values.get("-o").isEmpty();
 
-    for(int i=0, c=opt.args.size(); i<c; i++){
-      String anArg = opt.args.get(i);
+    for( String anArg : opt.args ){
       List<Path> paths = getClassPaths( anArg );
-      for(int j=0, d=paths.size(); j<d; j++ ){
-        Path thePath = paths.get(j);
-        if( thePath.toString().startsWith( anArg ) ){
-          doDisassemble( thePath.toString() );
-        } else {
-          doDisassemble( anArg+":"+thePath.toString() );
+      for( Path thePath : paths ){
+        try {
+          if( thePath.toString().startsWith( anArg ) ){
+            doDisassemble( thePath.toString() );
+          } else {
+            doDisassemble( anArg+":"+thePath.toString() );
+          }
+        } catch( Exception ex ) {
         }
       }
     }
